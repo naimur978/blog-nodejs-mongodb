@@ -218,7 +218,17 @@ function authenticate(passport) {
 
     // Profile View
     router.get('/profile', loggedInOnly, function(req, res, next) {
-        res.render('profile');
+        // Find all posts by the current user
+        Post.find({ author: req.user.email })
+            .sort({ createdAt: -1 }) // Sort by newest first
+            .exec()
+            .then(posts => {
+                res.render('profile', { userPosts: posts });
+            })
+            .catch(err => {
+                console.error('Error fetching user posts:', err);
+                res.render('profile', { error: 'Unable to fetch your posts' });
+            });
     });
     
     // Profile Handler
