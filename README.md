@@ -8,9 +8,11 @@ This is my 1st Node.js application. It has following functionalities `(find scee
 5. [View and Edit Profile](public/images/screenshots/profile.JPG)
 6. [Add Blog/Post](public/images/screenshots/add_post.JPG)
 7. [View Blog/Post](public/images/screenshots/dashboard.JPG)
-8. [Add Comment on a Blog/Post](public/images/screenshots/post_details.JPG)
-9. [View Comment on a Blog/Post](public/images/screenshots/comment.JPG)
-10. Account Locking (to prevent brute-force attacks by enforcing a maximum number of failed login attempts)
+8. [Edit Blog/Post](public/images/screenshots/edit_post.JPG)
+9. Delete Blog/Post (with confirmation)
+10. [Add Comment on a Blog/Post](public/images/screenshots/post_details.JPG)
+11. [View Comment on a Blog/Post](public/images/screenshots/comment.JPG)
+12. Account Locking (to prevent brute-force attacks by enforcing a maximum number of failed login attempts)
 
 ## Technology
 1. Node.js (Server side JS)
@@ -163,6 +165,42 @@ This section outlines all available API endpoints in the application, including 
 - **Note**: Author field is optional and defaults to "Anonymus" if not provided
 - **Response**: Redirects to home page with success/error message
 
+#### Edit Post
+- **URL**: `/post/:id/edit`
+- **Method**: `POST`
+- **Description**: Updates an existing blog post
+- **Authentication**: Requires user to be logged in
+- **Request Body**:
+  ```json
+  {
+    "title": "Updated Blog Post Title",
+    "description": "Updated description of the blog post",
+    "body": "Updated content of the blog post...",
+    "author": "john@example.com"
+  }
+  ```
+- **Response**: Redirects to post detail page with success/error message
+
+#### Delete Post
+- **URL**: `/post/:id/delete`
+- **Method**: `POST`
+- **Description**: Deletes a blog post and its associated comments
+- **Authentication**: Requires user to be logged in
+- **Response**: Returns JSON
+  ```json
+  {
+    "success": true,
+    "message": "Post and related comments deleted successfully!"
+  }
+  ```
+  or on error:
+  ```json
+  {
+    "success": false,
+    "message": "Error message here"
+  }
+  ```
+
 #### Add Comment
 - **URL**: `/post/comments`
 - **Method**: `POST`
@@ -233,6 +271,12 @@ This section outlines all available API endpoints in the application, including 
 - **URL**: `/post/:id`
 - **Method**: `GET`
 - **Description**: Displays a specific blog post details
+- **Authentication**: Requires user to be logged in
+
+#### Edit Post Page
+- **URL**: `/post/:id/edit`
+- **Method**: `GET`
+- **Description**: Displays form to edit an existing blog post
 - **Authentication**: Requires user to be logged in
 
 #### Post Comments Page

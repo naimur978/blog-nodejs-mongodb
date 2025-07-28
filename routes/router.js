@@ -7,7 +7,7 @@ const crypto = require("crypto");
 
 const User = require(path.join(__dirname, '../models/user'));
 const Post = require(path.join(__dirname, '../models/post'));
-const Comment = require(path.join(__dirname, '../models/comment'));
+const Comment = require(path.join(__dirname, '../models/comment')).model;
 
 const keys = require(path.join(__dirname, '../config/keys'));
 const mailer = require(path.join(__dirname, '../mailer/nodemailer'));
@@ -348,17 +348,24 @@ function authenticate(passport) {
 
     // Edit Post View
     router.get('/post/:id/edit', loggedInOnly, function(req, res) {
-        Post.findById(req.params.id, function(err, post) {
-            if(err) {
+        Post.findById(req.params.id)
+            .exec()
+            .then(post => {
+                if (!post) {
+                    req.flash('error', 'Post not found.');
+                    return res.redirect('/');
+                }
+                if (post.author !== req.user.email) {
+                    req.flash('error', 'You can only edit your own posts.');
+                    return res.redirect('/');
+                }
+                res.render('edit_post', { post: post });
+            })
+            .catch(err => {
+                console.error(err);
                 req.flash('error', 'Something went wrong while fetching the post.');
                 return res.redirect('/');
-            }
-            if (!post) {
-                req.flash('error', 'Post not found.');
-                return res.redirect('/');
-            }
-            res.render('edit_post', { post: post });
-        });
+            });
     });
 
     // Edit Post Handler
@@ -385,10 +392,57 @@ function authenticate(passport) {
             res.redirect('/post/' + post._id);
         })
         .catch(err => {
-            console.error(err.stack);
+            console.error(err);
             req.flash('error', 'Something went wrong while updating the post.');
             res.redirect('/post/' + req.params.id + '/edit');
         });
+    });
+
+    // Delete Post Handler
+    router.post('/post/:id/delete', loggedInOnly, async function(req, res) {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Please login to delete posts'
+            });
+        }
+
+        try {
+            const post = await Post.findById(req.params.id).exec();
+            
+            if (post.author !== req.user.email) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only delete your own posts'
+                });
+            }
+            
+            if (!post) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Post not found.' 
+                });
+            }
+
+            // Clean up related comments
+            if (post.comments && post.comments.length > 0) {
+                await Comment.deleteMany({ _id: { $in: post.comments.map(c => c._id) } }).exec();
+            }
+
+            // Delete the post
+            await post.deleteOne();
+
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Post and related comments deleted successfully!' 
+            });
+        } catch (err) {
+            console.error('Error deleting post:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Something went wrong while deleting the post.' 
+            });
+        }
     });
 
     /*router.use((err, req, res) => {

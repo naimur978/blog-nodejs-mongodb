@@ -9,6 +9,7 @@ const express = require("express"),
     flash = require("express-flash-messages"),
     mongoose = require("mongoose"),
     passport = require("passport"),
+    helpers = require('handlebars-helpers')(),
     LocalStrategy = require("passport-local").Strategy;
 
 mongoose.Promise = require("bluebird");
@@ -21,14 +22,20 @@ const app = express();
 const User = require(path.join(__dirname, 'models/user')),
     keys = require(path.join(__dirname, 'config/keys'));
 
-// Templates
+// Create Handlebars instance with custom helpers
 const hbs = expressHandlebars.create({
     extname: 'handlebars',
     defaultLayout: "post_signin",
     runtimeOptions: {
         allowProtoPropertiesByDefault: true,
         allowProtoMethodsByDefault: true
-    }    
+    },
+    helpers: {
+        ...helpers,
+        equals: function(a, b, options) {
+            return a === b ? options.fn(this) : options.inverse(this);
+        }
+    }
 });
 
 // View Engine

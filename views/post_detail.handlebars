@@ -9,8 +9,10 @@
                     <li><span><i class="glyphicon glyphicon-calendar"></i>&nbsp;{{post.publishedSince}}</span></li>
                     <li>|</li>
                     <span><i class="glyphicon glyphicon-comment"></i> {{post.comments.length}} comments</span>
-                    <li>|</li>
-                    <li><a href="/post/{{post._id}}/edit"><i class="glyphicon glyphicon-edit"></i> Edit</a></li>
+                    {{#equals post.author user.email}}
+                        <li>|</li>
+                        <li><a href="/post/{{post._id}}/edit"><i class="glyphicon glyphicon-edit"></i> Edit</a></li>
+                    {{/equals}}
                     <li>|</li>
                     <li><a href="/"><i class="glyphicon glyphicon-home"></i></a></li>
                 </ul>

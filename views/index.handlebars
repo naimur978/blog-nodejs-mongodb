@@ -39,8 +39,13 @@
                                         <td><small>{{ post.comments.length }}</small></td>
                                         <td><small>Published {{ post.publishedAt }}</small></td>
                                         <td>
-                                            <a href="#"><i class="fa fa-pencil-square-o"></i></a>
-                                            <a href="#"><i class="fa fa-trash"></i></a>
+                                            {{#equals post.author ../user.email}}
+                                                <a href="/post/{{post.id}}/edit" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
+                                                &nbsp;
+                                                <a href="#" class="delete-post" data-id="{{post.id}}" onclick="return false;" title="Delete">
+                                                    <i class="fa fa-trash text-danger"></i>
+                                                </a>
+                                            {{/equals}}
                                         </td>
                                     </tr>
                                 {{/each}}

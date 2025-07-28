@@ -28,6 +28,40 @@ $(function() {
     })
 });
 
+// Handle post deletion
+$(document).on('click', '.delete-post', function(e) {
+    e.preventDefault();
+    const postId = $(this).data('id');
+    
+    if (confirm('Are you sure you want to delete this post?')) {
+        fetch(`/post/${postId}/delete`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                $(this).closest('tr').remove();
+                alert(data.message);
+            } else {
+                throw new Error(data.message || 'Failed to delete post');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (error.message === 'Failed to fetch') {
+                window.location.href = '/login'; // Redirect to login if session expired
+            } else {
+                alert(error.message || 'Failed to delete the post. Please try again.');
+            }
+        });
+    }
+});
+
 $(document).ready(function() {
     $('#register-form').bootstrapValidator({
         feedbackIcons: {
