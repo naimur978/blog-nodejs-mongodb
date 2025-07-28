@@ -19,8 +19,8 @@ mongoose.Promise = require("bluebird");
 const app = express();
 //==============================================================================
 
-const User = require(path.join(__dirname, 'models/user')),
-    keys = require(path.join(__dirname, 'config/keys'));
+const User = require(path.join(__dirname, 'api/models/user')),
+    keys = require(path.join(__dirname, 'api/config/keys'));
 
 // Create Handlebars instance with custom helpers
 const hbs = expressHandlebars.create({
@@ -143,7 +143,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use("/", require("./routes/router")(passport));
+app.use("/", require("./api/routes/router")(passport));
 
 // Start Server
 const port = process.env.PORT || 8080;
