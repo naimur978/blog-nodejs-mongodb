@@ -1,0 +1,54 @@
+<div class="row">
+    <div class="col-md-3 ">
+        <div class="list-group ">
+            <a href="/" class="list-group-item list-group-item-action">Dashboard</a>
+            <a href="/post" class="list-group-item list-group-item-action">Add New Post</a>
+            <a href="/profile" class="list-group-item list-group-item-action">My Profile</a>
+            <a href="/logout" class="list-group-item list-group-item-action">Logout</a>
+        </div> 
+    </div>
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h4>Edit Post</h4>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-12">
+                        <form id="edit-post-form" action="/post/{{post._id}}/edit" method="post" role="form">
+                            <div class="form-group">
+                                <div class="input-group">
+                                    <input id="title" name="title" placeholder="Enter Title here" class="form-control here" type="text" value="{{post.title}}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="input-group">
+                                    <input id="description" name="description" placeholder="Enter short description here" class="form-control here" type="text" value="{{post.description}}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="input-group">
+                                    <textarea id="body" name="body" rows="50" class="form-control" placeholder="Enter body here">{{post.body}}</textarea>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="input-group">
+                                    <span class="input-group-addon"><span class="glyphicon glyphicon-envelope"></span></span>
+                                    <input type="email" class="form-control" name="author" id="author" placeholder="Email..." title="Email" value="{{post.author}}">
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-md-12 text-center">
+                                    <input type="submit" name="update_post" id="update_post" tabindex="4" class="btn btn-primary" value="Update Post">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
