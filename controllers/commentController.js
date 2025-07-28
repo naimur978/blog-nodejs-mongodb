@@ -1,50 +1,18 @@
-const Post = require('../models/post');
 const Comment = require('../models/comment');
+const Post = require('../models/post');
 
 const commentController = {
-    getComments: async (req, res) => {
-        try {
-            const post = await Post.findById(req.params.id)
-                .populate('comments')
-                .exec();
-
-            if (!post) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Post not found'
-                });
-            }
-
-            res.json({
-                success: true,
-                comments: post.comments
-            });
-        } catch (err) {
-            console.error('Error fetching comments:', err);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to fetch comments'
-            });
-        }
-    },
-
-    createComment: async (req, res) => {
+    createCommentJson: async (req, res) => {
         try {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({
                     success: false,
-                    message: 'You must be logged in to comment'
+                    message: 'Please login to comment'
                 });
             }
 
-            if (!req.body.content) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Comment content is required'
-                });
-            }
-
-            const post = await Post.findById(req.params.postId);
+            const post = await Post.findById(req.params.postId).exec();
+            
             if (!post) {
                 return res.status(404).json({
                     success: false,
@@ -52,44 +20,41 @@ const commentController = {
                 });
             }
 
-            const comment = new Comment({
-                message: req.body.content,
-                email: req.user.email,
-                name: req.user.username || req.user.email.split('@')[0],
-                post: post._id
+            const comment = await Comment.create({
+                content: req.body.content,
+                author: req.user.email,
+                post: req.params.postId
             });
 
-            const savedComment = await comment.save();
-            console.log('Comment saved successfully:', savedComment._id);
-
-            post.comments.push(savedComment._id);
+            // Add comment to post's comments array
+            post.comments.push(comment._id);
             await post.save();
 
             return res.status(201).json({
                 success: true,
                 message: 'Comment added successfully',
-                comment: savedComment
+                comment: comment
             });
-
         } catch (err) {
             console.error('Error creating comment:', err);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
-                message: 'Failed to create comment'
+                message: 'Something went wrong while creating the comment',
+                error: err.message
             });
         }
     },
 
-    updateComment: async (req, res) => {
+    updateCommentJson: async (req, res) => {
         try {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({
                     success: false,
-                    message: 'You must be logged in to update comments'
+                    message: 'Please login to update comments'
                 });
             }
 
-            const comment = await Comment.findById(req.params.id);
+            const comment = await Comment.findById(req.params.id).exec();
             
             if (!comment) {
                 return res.status(404).json({
@@ -108,30 +73,31 @@ const commentController = {
             comment.content = req.body.content;
             await comment.save();
 
-            res.json({
+            return res.json({
                 success: true,
                 message: 'Comment updated successfully',
-                comment
+                comment: comment
             });
         } catch (err) {
             console.error('Error updating comment:', err);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
-                message: 'Failed to update comment'
+                message: 'Something went wrong while updating the comment',
+                error: err.message
             });
         }
     },
 
-    deleteComment: async (req, res) => {
+    deleteCommentJson: async (req, res) => {
         try {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({
                     success: false,
-                    message: 'You must be logged in to delete comments'
+                    message: 'Please login to delete comments'
                 });
             }
 
-            const comment = await Comment.findById(req.params.id);
+            const comment = await Comment.findById(req.params.id).exec();
             
             if (!comment) {
                 return res.status(404).json({
@@ -147,21 +113,23 @@ const commentController = {
                 });
             }
 
+            // Remove comment from post's comments array
             await Post.findByIdAndUpdate(comment.post, {
                 $pull: { comments: comment._id }
-            });
+            }).exec();
 
             await comment.deleteOne();
 
-            res.json({
+            return res.json({
                 success: true,
                 message: 'Comment deleted successfully'
             });
         } catch (err) {
             console.error('Error deleting comment:', err);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
-                message: 'Failed to delete comment'
+                message: 'Something went wrong while deleting the comment',
+                error: err.message
             });
         }
     }

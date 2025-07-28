@@ -3,12 +3,86 @@ const Comment = require('../models/comment');
 
 const postController = {
     getAllPosts: (req, res, next) => {
-        Post.find({}, function (err, posts) {
-            if(err) { next(err); }
-            else {
-                res.render("index", { posts: posts });
-            }
+        Post.find({})
+        .exec()
+        .then(posts => {
+            res.render("index", { posts: posts });
+        })
+        .catch(err => {
+            console.error('Error finding posts:', err);
+            next(err);
         });
+    },
+
+    getPostsJson: (req, res, next) => {
+        Post.find({})
+        .exec()
+        .then(posts => {
+            console.log('Found posts for API:', posts);
+            res.json({ posts: posts });
+        })
+        .catch(err => {
+            console.error('Error finding posts:', err);
+            res.status(500).json({ error: 'Failed to fetch posts' });
+        });
+    },
+    
+    getPostDetailsJson: async (req, res) => {
+        try {
+            const post = await Post.findById(req.params.id)
+                .populate({
+                    path: 'comments',
+                    options: { sort: { 'createdAt': -1 } }
+                })
+                .exec();
+                
+            if (!post) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Post not found.'
+                });
+            }
+            
+            return res.json({
+                success: true,
+                post: post
+            });
+        } catch (err) {
+            console.error('Error fetching post:', err);
+            return res.status(500).json({ 
+                success: false,
+                message: 'Something went wrong while retrieving the post.'
+            });
+        }
+    },
+
+    createPostJson: async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Please login to create posts'
+                });
+            }
+
+            const post = await Post.create({
+                ...req.body,
+                author: req.user.email
+            });
+
+            return res.status(201).json({
+                success: true,
+                message: 'Blog Post created successfully!',
+                post: post
+            });
+        } catch (err) {
+            console.error('Error creating post:', err);
+            return res.status(500).json({
+                success: false,
+                message: 'Something went wrong while creating the post.',
+                error: err.message
+            });
+        }
     },
 
     getPostForm: (req, res) => {
@@ -105,6 +179,58 @@ const postController = {
             req.flash('error', 'Something went wrong while updating the post.');
             res.redirect('/post/' + req.params.id + '/edit');
         });
+    },
+
+    updatePostJson: async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Please login to update posts'
+                });
+            }
+
+            const post = await Post.findById(req.params.id).exec();
+            
+            if (!post) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Post not found.' 
+                });
+            }
+
+            if (post.author !== req.user.email) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only update your own posts'
+                });
+            }
+
+            const updateData = {
+                title: req.body.title,
+                description: req.body.description,
+                body: req.body.body
+            };
+
+            const updatedPost = await Post.findByIdAndUpdate(
+                req.params.id,
+                { $set: updateData },
+                { new: true, runValidators: true }
+            ).exec();
+
+            return res.json({
+                success: true,
+                message: 'Post updated successfully!',
+                post: updatedPost
+            });
+        } catch (err) {
+            console.error('Error updating post:', err);
+            return res.status(500).json({
+                success: false,
+                message: 'Something went wrong while updating the post.',
+                error: err.message
+            });
+        }
     },
 
     deletePost: async (req, res) => {

@@ -10,7 +10,8 @@ const express = require("express"),
     mongoose = require("mongoose"),
     passport = require("passport"),
     helpers = require('handlebars-helpers')(),
-    LocalStrategy = require("passport-local").Strategy;
+    LocalStrategy = require("passport-local").Strategy,
+    cors = require('cors');
 
 mongoose.Promise = require("bluebird");
 
@@ -51,6 +52,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 */
 
 app.use(logger('dev'));
+
+// CORS
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true
+}));
 
 // Post Data
 app.use(bodyParser.json());
@@ -142,7 +149,11 @@ app.use((req, res, next) => {
     next();
 });
 
-// Routes
+// API Routes - mount before web routes to ensure API requests are handled properly
+app.use("/api/auth", require("./api/routes/auth"));
+app.use("/api", require("./api/routes/api"));
+
+// Web Routes - for non-API requests
 app.use("/", require("./api/routes/router")(passport));
 
 // Start Server
