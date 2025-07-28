@@ -7,7 +7,7 @@ const crypto = require("crypto");
 
 const User = require(path.join(__dirname, '../models/user'));
 const Post = require(path.join(__dirname, '../models/post'));
-const Comment = require(path.join(__dirname, '../models/comment')).model;
+const Comment = require(path.join(__dirname, '../models/comment'));
 
 const keys = require(path.join(__dirname, '../config/keys'));
 const mailer = require(path.join(__dirname, '../mailer/nodemailer'));
@@ -301,16 +301,34 @@ function authenticate(passport) {
     });
 
     // Post Details View
-    router.get('/post/:id', loggedInOnly, function(req, res) {
-        Post.findById(req.params.id, function (err, post) {
-            if(err) { 
-                req.flash('error', 'Something wrong happened with Post details.');
+    router.get('/post/:id', loggedInOnly, async function(req, res) {
+        try {
+            // Find post by ID and populate comments
+            const post = await Post.findById(req.params.id)
+                .populate({
+                    path: 'comments',
+                    options: { sort: { 'createdAt': -1 } } // Sort comments by newest first
+                })
+                .exec();
+                
+            if (!post) { 
+                req.flash('error', 'Post not found.');
                 return res.redirect('/');
-                }
-            else {
-                res.render("post_detail", { layout: 'pre_signin', post: post });
             }
-        });
+            
+            // Debug info
+            console.log(`Post "${post.title}" found with ${post.comments.length} comments`);
+            
+            // Render the post with its comments
+            res.render("post_detail", { 
+                post: post,
+                showCommentForm: true // Flag to show comment form
+            });
+        } catch (err) {
+            console.error('Error fetching post:', err);
+            req.flash('error', 'Something went wrong while retrieving the post.');
+            return res.redirect('/');
+        }
     });
 
 
@@ -330,30 +348,45 @@ function authenticate(passport) {
     });
 
     // Post Details - Comment Handler 
-    router.post("/post/comments", loggedInOnly, (req, res, next) => {
-        Post.findById(req.body.postId)
-        .exec()
-        .then(post => {
-            comment = Comment.create({ name : req.body.name,
+    router.post("/post/comments", loggedInOnly, async (req, res, next) => {
+        try {
+            // Validate request
+            if (!req.body.message || !req.body.email || !req.body.postId) {
+                req.flash('error', 'Missing required fields');
+                return res.redirect(`/post/${req.body.postId || ''}`);
+            }
+            
+            // Find the post
+            const post = await Post.findById(req.body.postId);
+            if (!post) {
+                req.flash('error', 'Post not found!');
+                return res.redirect("/");
+            }
+            
+            // Create the comment
+            const comment = new Comment({
+                name: req.body.name || req.user.username,
                 email: req.body.email,
-                message: req.body.message,
-            })
-            .then(comment => {
-                post.comments.push(comment);
-                post.save()
-                .then(post => { 
-                    req.flash('success', 'Comment added to the Post successfully!');
-                    res.redirect("/");
-                });
-            })
-        })
-        .catch(err => {
-            console.error(err.stack);
-            if (err) {
-                req.flash('error', 'Soomething wrong happened while creating the post!');
-                res.redirect("/");
-            } else next(err);
-        });
+                message: req.body.message
+            });
+            
+            // Save the comment
+            const savedComment = await comment.save();
+            console.log('Comment saved successfully:', savedComment._id);
+            
+            // Add comment reference to post and save
+            post.comments.push(savedComment._id);
+            await post.save();
+            
+            // Flash success message and redirect
+            req.flash('success', 'Comment added successfully!');
+            res.redirect(`/post/${req.body.postId}`);
+            
+        } catch (err) {
+            console.error('Error processing comment:', err);
+            req.flash('error', 'Something went wrong while adding your comment');
+            res.redirect(`/post/${req.body.postId || ''}`);
+        }
     });
 
     // Edit Post View
