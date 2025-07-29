@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   TextField, 
@@ -14,42 +14,152 @@ import {
   Chip,
   Stack
 } from '@mui/material';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink, useParams } from 'react-router-dom';
 import * as api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import TitleIcon from '@mui/icons-material/Title';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ArticleIcon from '@mui/icons-material/Article';
 import SaveIcon from '@mui/icons-material/Save';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import LockIcon from '@mui/icons-material/Lock';
 
-const NewPost = () => {
+const EditPost = () => {
+  const { id } = useParams();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [postAuthor, setPostAuthor] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        setLoading(true);
+        const post = await api.getPost(id);
+        if (post) {
+          setTitle(post.title || '');
+          setDescription(post.description || '');
+          setBody(post.body || '');
+          setPostAuthor(post.author || '');
+          
+          // Check if the current user is the author
+          if (user && user.email === post.author) {
+            setIsAuthorized(true);
+          } else {
+            console.log('Current user:', user?.email);
+            console.log('Post author:', post.author);
+            setIsAuthorized(false);
+            setError('You can only edit your own posts');
+          }
+        } else {
+          setError('Post not found');
+        }
+      } catch (err) {
+        console.error('Error fetching post:', err);
+        setError('Failed to load post. ' + (err.message || ''));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchPost();
+    } else {
+      setLoading(false);
+      setError('Please log in to edit posts');
+    }
+  }, [id, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    
+    // Check authorization again before submitting
+    if (!isAuthorized) {
+      setError('You do not have permission to edit this post');
+      return;
+    }
+    
+    setSaving(true);
     setError('');
+    setSuccess('');
     
     try {
-      await api.createPost({ title, description, body });
-      navigate('/');
+      await api.updatePost(id, { title, description, body });
+      setSuccess('Post updated successfully');
+      
+      // Navigate back after a short delay
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     } catch (error) {
-      setError(error.message || 'Failed to create post');
-      setLoading(false);
+      console.error('Error updating post:', error);
+      setError(error.message || 'Failed to update post');
+      
+      // If unauthorized error occurs
+      if (error.message && error.message.includes('only update your own posts')) {
+        setIsAuthorized(false);
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
   const isFormValid = title.trim() !== '' && description.trim() !== '' && body.trim() !== '';
 
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
+        <CircularProgress size={60} />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Loading post...
+        </Typography>
+      </Container>
+    );
+  }
+  
+  // If user is not the author, show unauthorized message
+  if (!isAuthorized && !loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <LockIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
+          <Typography variant="h4" gutterBottom>
+            Access Denied
+          </Typography>
+          <Typography variant="body1" paragraph>
+            You do not have permission to edit this post. Only the author can edit their own posts.
+          </Typography>
+          <Button 
+            variant="contained" 
+            component={RouterLink} 
+            to="/"
+            sx={{ mr: 2 }}
+          >
+            Back to Home
+          </Button>
+          <Button 
+            variant="outlined"
+            component={RouterLink}
+            to={`/post/${id}`}
+          >
+            View Post
+          </Button>
+        </Paper>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={4}>
-        <Grid item xs={12} md={8} sx={{ mx: 'auto' }}>
+        <Grid item xs={12} md={10} lg={10} sx={{ mx: 'auto' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
             <Button 
               component={RouterLink} 
@@ -60,13 +170,19 @@ const NewPost = () => {
               Back
             </Button>
             <Typography variant="h4" component="h1" sx={{ fontWeight: 600, flexGrow: 1 }}>
-              Create New Post
+              Edit Post
             </Typography>
           </Box>
 
           {error && (
             <Alert severity="error" sx={{ mb: 4 }}>
               {error}
+            </Alert>
+          )}
+          
+          {success && (
+            <Alert severity="success" sx={{ mb: 4 }}>
+              {success}
             </Alert>
           )}
 
@@ -146,23 +262,19 @@ const NewPost = () => {
                   <Button
                     type="submit"
                     variant="contained"
-                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-                    disabled={loading || !isFormValid}
+                    startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                    disabled={saving || !isFormValid}
                   >
-                    {loading ? 'Saving...' : 'Publish Post'}
+                    {saving ? 'Saving...' : 'Update Post'}
                   </Button>
                 </Box>
               </Stack>
             </Box>
           </Paper>
-
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 4 }}>
-            Your post will be public and visible to all users.
-          </Typography>
         </Grid>
       </Grid>
     </Container>
   );
 };
 
-export default NewPost;
+export default EditPost;

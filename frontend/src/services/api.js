@@ -13,13 +13,37 @@ const api = axios.create({
 
 export const login = async (username, password) => {
   try {
-    const response = await api.post('/api/auth/login', {
-      username,
-      password
-    });
-    return response.data;
+    console.log('API login attempt with username:', username);
+    
+    // Try JSON payload first
+    try {
+      const response = await api.post('/api/auth/login', {
+        username,
+        password
+      });
+      console.log('Login successful with JSON payload:', response.data);
+      return response.data;
+    } catch (jsonError) {
+      console.error('JSON login failed, trying form data:', jsonError);
+      
+      // Try form URL-encoded as fallback
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
+      
+      const response = await axios.post('http://localhost:8080/login', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        withCredentials: true
+      });
+      
+      console.log('Login successful with form data');
+      return { success: true };
+    }
   } catch (error) {
-    throw error.response?.data || error.message;
+    console.error('Login failed completely:', error);
+    throw error.response?.data || error.message || 'Login failed';
   }
 };
 
