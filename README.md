@@ -4,6 +4,7 @@
 ## Description
 Blog-Post is a Node.js application for creating and managing blog posts with user authentication, commenting, and email notifications.
 
+
 ## Features
 - User Registration (email support)
 - Login/Logout
@@ -17,6 +18,16 @@ Blog-Post is a Node.js application for creating and managing blog posts with use
 - Add Comment on a Blog/Post
 - View Comment on a Blog/Post
 - Account Locking (prevents brute-force attacks)
+
+
+
+
+### Snapshots
+![Screenshot 1](public/images/screenshots/SS1.png)
+
+![Screenshot 2](public/images/screenshots/SS2.png)
+
+![Screenshot 3](public/images/screenshots/SS3.png)
 
 ## Technology Stack
 - Node.js (Server side JS)
