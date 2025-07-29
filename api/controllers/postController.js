@@ -4,6 +4,7 @@ const Comment = require('../models/comment');
 const postController = {
     getAllPosts: (req, res, next) => {
         Post.find({})
+        .sort({ createdAt: -1 }) // Sort by date, newest first
         .exec()
         .then(posts => {
             res.render("index", { posts: posts });
