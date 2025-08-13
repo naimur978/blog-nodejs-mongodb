@@ -17,7 +17,6 @@ Blog-Post is a Node.js application for creating and managing blog posts with use
 - Delete Blog/Post (with confirmation)
 - Add Comment on a Blog/Post
 - View Comment on a Blog/Post
-- Account Locking (prevents brute-force attacks)
 
 
 
